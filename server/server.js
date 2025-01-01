@@ -12,11 +12,21 @@ connectDB();
 
 const app = express();
 app.use(bodyParser.json());
-app.use(cors({
-    origin: 'baylink-project.vercel.app/',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true,
- }));
+const corsOptions = {
+    origin: 'https://baylink-project.vercel.app', 
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], 
+    allowedHeaders: [
+        'Origin',
+        'X-Requested-With',
+        'Content-Type',
+        'Accept',
+        'Authorization',
+        'Referer',
+    ], 
+    credentials: true, 
+};
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Set up multer for file uploads

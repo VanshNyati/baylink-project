@@ -19,7 +19,11 @@ function App() {
 
   const fetchItems = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/items?page=${currentPage}&limit=${itemsPerPage}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/items?page=${currentPage}&limit=${itemsPerPage}`, {
+        method: 'GET',
+        credentials: 'include', // Include credentials like cookies if needed
+        mode: 'cors', // Ensure cross-origin mode is set
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch items');
       }
@@ -44,6 +48,8 @@ function App() {
       const response = await fetch(url, {
         method,
         body: formData,
+        credentials: 'include', // Include credentials like cookies if needed
+        mode: 'cors', // Ensure cross-origin mode is set
       });
 
       if (!response.ok) {
@@ -72,6 +78,8 @@ function App() {
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include', // Include credentials like cookies if needed
+          mode: 'cors', // Ensure cross-origin mode is set
         });
 
         if (!response.ok) {
@@ -108,6 +116,8 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Include credentials like cookies if needed
+        mode: 'cors', // Ensure cross-origin mode is set
         body: JSON.stringify({ totalUnits: updatedQuantity }),
       });
 
