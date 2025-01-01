@@ -2,17 +2,14 @@ module.exports = {
     apps: [
         {
             name: "baylink-server",
-            script: "npm",
-            args: "start",
+            script: "server.js",
             env: {
-                NODE_ENV: "development",
-                PORT: 5000,
-                MONGODB_URI: "your_mongodb_uri_here", // Replace with your actual MongoDB URI
-            },
-            env_production: {
                 NODE_ENV: "production",
                 PORT: 5000,
-                MONGODB_URI: "your_production_mongodb_uri_here", // Replace with your production MongoDB URI
+                MONGODB_URI: process.env.MONGODB_URI,
+                AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+                AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+                S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
             },
         },
     ],

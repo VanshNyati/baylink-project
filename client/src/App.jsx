@@ -19,7 +19,7 @@ function App() {
 
   const fetchItems = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/items?page=${currentPage}&limit=${itemsPerPage}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/items?page=${currentPage}&limit=${itemsPerPage}`);
       if (!response.ok) {
         throw new Error('Failed to fetch items');
       }
@@ -37,7 +37,7 @@ function App() {
   }, [fetchItems]);
 
   const handleFormSubmit = async (formData) => {
-    const url = editingItem ? `http://localhost:5000/api/items/${editingItem._id}` : 'http://localhost:5000/api/items';
+    const url = editingItem ? `${process.env.REACT_APP_API_URL}/items/${editingItem._id}` : `${process.env.REACT_APP_API_URL}/items`;
     const method = editingItem ? 'PUT' : 'POST';
 
     try {
@@ -67,7 +67,7 @@ function App() {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this item?")) {
       try {
-        const response = await fetch(`http://localhost:5000/api/items/${id}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/items/${id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -103,7 +103,7 @@ function App() {
     const updatedQuantity = operation === 'increase' ? selectedItem.totalUnits + quantity : selectedItem.totalUnits - quantity;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/items/${selectedItem._id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/items/${selectedItem._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
