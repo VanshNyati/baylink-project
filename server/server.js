@@ -30,7 +30,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Routes
+
+app.get('/', (req, res) => {
+    res.status(200).send('Welcome to Baylink API');
+});
 app.use('/api/items', require('./routes/itemRoutes')); 
 
 // Handle 404 errors
