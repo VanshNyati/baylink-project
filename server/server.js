@@ -12,7 +12,8 @@ connectDB();
 
 const app = express();
 app.use(bodyParser.json());
-app.use(cors({ origin: 'http://localhost:3000',
+app.use(cors({
+    origin: 'https://baylink-project.vercel.app/',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
  }));
