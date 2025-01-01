@@ -7,6 +7,7 @@ const multer = require('multer');
 const path = require('path');
 
 dotenv.config();
+console.log(process.env.MONGODB_URI);
 connectDB();
 
 const app = express();
