@@ -12,22 +12,17 @@ connectDB();
 
 const app = express();
 app.use(bodyParser.json());
-
-const allowedOrigins = [
-    'http://localhost:3000', // For local development
-    'https://baylink-project.vercel.app', // Your deployed Vercel frontend
-];
-
 const corsOptions = {
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: ['https://baylink-project.vercel.app', 'http://localhost:3000'], // Use an array for multiple origins
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+        'Origin',
+        'X-Requested-With',
+        'Content-Type',
+        'Accept',
+        'Authorization',
+        'Referer',
+    ],
     credentials: true,
 };
 app.options('*', cors(corsOptions));
