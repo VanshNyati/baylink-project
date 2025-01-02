@@ -13,7 +13,7 @@ connectDB();
 const app = express();
 app.use(bodyParser.json());
 const corsOptions = {
-    origin: 'https://baylink-project.vercel.app', 
+    origin: 'https://baylink-project.vercel.app/', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], 
     allowedHeaders: [
         'Origin',

@@ -16,7 +16,7 @@ function App() {
   const [isQuantityModalVisible, setIsQuantityModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const itemsPerPage = 5;
-
+  console.log("Hello", process.env.REACT_APP_API_URL);
   const fetchItems = useCallback(async () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/items?page=${currentPage}&limit=${itemsPerPage}`, {
