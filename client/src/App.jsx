@@ -16,7 +16,7 @@ function App() {
   const [isQuantityModalVisible, setIsQuantityModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const itemsPerPage = 5;
-  console.log("Hello", process.env.REACT_APP_API_URL);
+
   const fetchItems = useCallback(async () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/items?page=${currentPage}&limit=${itemsPerPage}`, {
@@ -41,29 +41,46 @@ function App() {
   }, [fetchItems]);
 
   const handleFormSubmit = async (formData) => {
-    const url = editingItem ? `${process.env.REACT_APP_API_URL}/items/${editingItem._id}` : `${process.env.REACT_APP_API_URL}/items`;
+    const url = editingItem
+      ? `${process.env.REACT_APP_API_URL}/items/${editingItem._id}`
+      : `${process.env.REACT_APP_API_URL}/items`;
     const method = editingItem ? 'PUT' : 'POST';
 
     try {
       const response = await fetch(url, {
         method,
         body: formData,
-        credentials: 'include', // Include credentials like cookies if needed
-        mode: 'cors', // Ensure cross-origin mode is set
+        credentials: 'include',
+        mode: 'cors',
       });
 
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
       }
 
+      const updatedItem = await response.json();
+
+      // Update items state immediately
+      setItems((prevItems) => {
+        if (editingItem) {
+          return prevItems.map((item) =>
+            item._id === updatedItem._id ? updatedItem : item
+          );
+        } else {
+          return [updatedItem, ...prevItems];
+        }
+      });
+
+      // Refresh the items list to ensure consistency
+      await fetchItems();
       setIsFormVisible(false);
       setEditingItem(null);
-      fetchItems();
     } catch (error) {
       console.error('Error submitting form:', error);
       alert('Error submitting form. Please try again.');
     }
   };
+
 
   const handleEdit = (item) => {
     setEditingItem(item);
@@ -108,7 +125,11 @@ function App() {
   };
 
   const updateQuantity = async (operation, quantity) => {
-    const updatedQuantity = operation === 'increase' ? selectedItem.totalUnits + quantity : selectedItem.totalUnits - quantity;
+    if (!selectedItem) return;
+
+    const updatedQuantity = operation === 'increase'
+      ? selectedItem.totalUnits + quantity
+      : selectedItem.totalUnits - quantity;
 
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/items/${selectedItem._id}`, {
@@ -116,16 +137,31 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Include credentials like cookies if needed
-        mode: 'cors', // Ensure cross-origin mode is set
-        body: JSON.stringify({ totalUnits: updatedQuantity }),
+        credentials: 'include',
+        mode: 'cors',
+        body: JSON.stringify({
+          totalUnits: updatedQuantity,
+          // Recalculate total price based on updated quantity
+          totalPrice: updatedQuantity * selectedItem.purchasePrice *
+            (selectedItem.isInclusive ? 1 : (1 + selectedItem.gstRate / 100))
+        }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to update quantity');
       }
 
-      fetchItems();
+      const updatedItem = await response.json();
+
+      // Update items state immediately
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item._id === updatedItem._id ? updatedItem : item
+        )
+      );
+
+      // Refresh the items list to ensure consistency
+      await fetchItems();
       setIsQuantityModalVisible(false);
       setSelectedItem(null);
     } catch (error) {
@@ -133,6 +169,7 @@ function App() {
       alert('Error updating quantity. Please try again.');
     }
   };
+
 
   const exportToCSV = () => {
     return items.map(item => ({

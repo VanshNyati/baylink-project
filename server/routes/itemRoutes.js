@@ -33,10 +33,12 @@ const storage = multer.diskStorage({
     },
 });
 
-const upload = multer({ storage }); 
+const upload = multer({ storage });
 
 // Create a new item
 router.post('/', upload.array('images'), async (req, res) => {
+    console.log('Request body:', req.body);
+    console.log('Uploaded files:', req.files);
     const { itemName, itemCode, category, totalUnits, purchasePrice, lowStockWarning, lowStockQuantity, gstRate, stockUnit, isInclusive } = req.body;
 
     // Process the uploaded files
@@ -86,14 +88,27 @@ router.get('/', async (req, res) => {
 });
 
 // Update an item
-router.put('/:id', async (req, res) => {
+router.put('/:id', upload.array('images'), async (req, res) => {
     const { id } = req.params;
 
     try {
-        const updatedItem = await Item.findByIdAndUpdate(id, req.body, { new: true });
-        if (!updatedItem) {
+        const item = await Item.findById(id);
+        if (!item) {
             return res.status(404).json({ message: 'Item not found' });
         }
+
+        // If totalUnits is being updated, recalculate totalPrice
+        if (req.body.totalUnits !== undefined) {
+            const gstMultiplier = item.isInclusive ? 1 : 1 + (item.gstRate / 100);
+            req.body.totalPrice = req.body.totalUnits * item.purchasePrice * gstMultiplier;
+        }
+
+        const updatedItem = await Item.findByIdAndUpdate(
+            id,
+            req.body,
+            { new: true }
+        );
+
         res.json(updatedItem);
     } catch (error) {
         console.error('Error updating item:', error);
@@ -127,6 +142,7 @@ router.patch('/:id/stock', async (req, res) => {
         if (!updatedItem) {
             return res.status(404).json({ message: 'Item not found' });
         }
+        console.log('Updated Stock:', updatedItem);
         res.json(updatedItem);
     } catch (error) {
         console.error('Error updating stock quantity:', error);
