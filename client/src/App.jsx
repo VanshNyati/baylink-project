@@ -19,7 +19,7 @@ function App() {
 
   const fetchItems = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/items?page=${currentPage}&limit=${itemsPerPage}`, {
+      const response = await fetch(`https://4wrvbpvz89.execute-api.ap-south-1.amazonaws.com/prod/api/items?page=${currentPage}&limit=${itemsPerPage}`, {
         method: 'GET',
         credentials: 'include', // Include credentials like cookies if needed
         mode: 'cors', // Ensure cross-origin mode is set
@@ -42,8 +42,8 @@ function App() {
 
   const handleFormSubmit = async (formData) => {
     const url = editingItem
-      ? `${process.env.REACT_APP_API_URL}/items/${editingItem._id}`
-      : `${process.env.REACT_APP_API_URL}/items`;
+      ? `https://4wrvbpvz89.execute-api.ap-south-1.amazonaws.com/prod/api/items/update/${editingItem._id}`
+      : `https://4wrvbpvz89.execute-api.ap-south-1.amazonaws.com/prod/api/items/create`;
     const method = editingItem ? 'PUT' : 'POST';
 
     try {
@@ -57,10 +57,7 @@ function App() {
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
       }
-
       const updatedItem = await response.json();
-
-      // Update items state immediately
       setItems((prevItems) => {
         if (editingItem) {
           return prevItems.map((item) =>
@@ -70,8 +67,6 @@ function App() {
           return [updatedItem, ...prevItems];
         }
       });
-
-      // Refresh the items list to ensure consistency
       await fetchItems();
       setIsFormVisible(false);
       setEditingItem(null);
@@ -90,13 +85,13 @@ function App() {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this item?")) {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/items/${id}`, {
+        const response = await fetch(`https://4wrvbpvz89.execute-api.ap-south-1.amazonaws.com/prod/api/items/${id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
           },
-          credentials: 'include', // Include credentials like cookies if needed
-          mode: 'cors', // Ensure cross-origin mode is set
+          credentials: 'include', 
+          mode: 'cors', 
         });
 
         if (!response.ok) {
@@ -132,7 +127,7 @@ function App() {
       : selectedItem.totalUnits - quantity;
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/items/${selectedItem._id}`, {
+      const response = await fetch(`https://4wrvbpvz89.execute-api.ap-south-1.amazonaws.com/prod/api/items/${selectedItem._id}/stock`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
