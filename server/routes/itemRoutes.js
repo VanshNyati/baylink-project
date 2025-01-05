@@ -24,77 +24,48 @@ const uploadToS3 = async (fileContent, fileName) => {
 };
 
 router.post('/', async (req, res) => {
-    const { itemName, itemCode, category, totalUnits, purchasePrice, gstRate, stockUnit, lowStockWarning, lowStockQuantity, isInclusive } = {};
-    const imageUrls = [];
-    const busboy = new Busboy({ headers: req.headers });
+    const { itemName, itemCode, category, totalUnits, purchasePrice, lowStockWarning, lowStockQuantity, gstRate, stockUnit, isInclusive } = req.body;
 
-    busboy.on('file', async (fieldname, file, filename, encoding, mimetype) => {
-        console.log(`Uploading: ${filename}`);
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ message: 'No files uploaded' });
+    }
 
-        // Upload each file to S3
-        const params = {
-            Bucket: process.env.S3_BUCKET_NAME,
-            Key: `${Date.now()}_${filename}`,
-            Body: file,
-            ContentType: mimetype,
-            ACL: 'public-read', // Make the file public
-        };
+    try {
 
-        try {
-            const s3Response = await s3.upload(params).promise();
-            imageUrls.push(s3Response.Location);
-        } catch (error) {
-            console.error('Error uploading to S3:', error);
-            return res.status(500).json({ message: 'Error uploading file to S3' });
+        const imageUrls = [];
+        for (const file of req.files) {
+            const fileContent = fs.readFileSync(file.path);
+            const s3Response = await uploadToS3(fileContent, `${Date.now()}_${file.originalname}`);
+            imageUrls.push(s3Response.Location); 
         }
-    });
 
-    busboy.on('field', (fieldname, value) => {
-        // Collect the form fields
-        console.log(`Processed field: ${fieldname}`);
-        if (fieldname === 'itemName') itemName = value;
-        if (fieldname === 'itemCode') itemCode = value;
-        if (fieldname === 'category') category = value;
-        if (fieldname === 'totalUnits') totalUnits = parseInt(value, 10);
-        if (fieldname === 'purchasePrice') purchasePrice = parseFloat(value);
-        if (fieldname === 'gstRate') gstRate = parseFloat(value);
-        if (fieldname === 'stockUnit') stockUnit = value;
-        if (fieldname === 'lowStockWarning') lowStockWarning = value === 'true';
-        if (fieldname === 'lowStockQuantity') lowStockQuantity = parseInt(value, 10);
-        if (fieldname === 'isInclusive') isInclusive = value === 'true';
-    });
+        req.files.forEach((file) => fs.unlinkSync(file.path));
 
-    busboy.on('finish', async () => {
-        try {
-            // Final purchase price calculation
-            const finalPurchasePrice = isInclusive
-                ? purchasePrice
-                : purchasePrice + (purchasePrice * gstRate) / 100;
 
-            // Save the item to the database
-            const newItem = new Item({
-                itemName,
-                itemCode,
-                category,
-                totalUnits,
-                purchasePrice: finalPurchasePrice,
-                gstRate,
-                stockUnit,
-                lowStockWarning,
-                lowStockQuantity,
-                isInclusive,
-                images: imageUrls,
-            });
+        const finalPurchasePrice = isInclusive === 'true'
+            ? purchasePrice
+            : purchasePrice + (purchasePrice * gstRate / 100);
 
-            const savedItem = await newItem.save();
-            res.status(201).json(savedItem);
-        } catch (error) {
-            console.error('Error saving item:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
-        }
-    });
+        const newItem = new Item({
+            itemName,
+            itemCode,
+            category,
+            totalUnits,
+            purchasePrice: finalPurchasePrice,
+            gstRate,
+            isInclusive: isInclusive === 'true',
+            stockUnit,
+            lowStockWarning,
+            lowStockQuantity,
+            images: imageUrls, 
+        });
 
-    req.pipe(busboy);
+        const savedItem = await newItem.save();
+        res.status(201).json(savedItem);
+    } catch (error) {
+        console.error('Error uploading files or creating item:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
 });
 
 router.get('/', async (req, res) => {
