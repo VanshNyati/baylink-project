@@ -85,6 +85,9 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validateForm()) return;
+
+        setIsSubmitting(true);
 
         const formDataToSend = new FormData();
         formDataToSend.append('itemName', formData.itemName);
@@ -98,20 +101,30 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
         formDataToSend.append('lowStockWarning', formData.lowStockWarning);
         formDataToSend.append('lowStockQuantity', formData.lowStockQuantity);
 
-        // Append images
-        if (formData.images.length > 0) {
-            formData.images.forEach((file) => {
-                formDataToSend.append('images', file);
-            });
-        } else {
-            alert('Please upload at least one image.');
-            return;
-        }
+        formData.images.forEach((file) => {
+            formDataToSend.append('images', file);
+        });
 
-        console.log('FormData:', [...formDataToSend]); // Debug FormData
         await onSubmit(formDataToSend);
-    };
+        setIsSubmitting(false);
 
+        if (!initialData) {
+            setFormData({
+                itemName: '',
+                itemCode: '',
+                category: '',
+                totalUnits: '',
+                purchasePrice: '',
+                gstRate: '',
+                isInclusive: false,
+                stockUnit: 'Unit',
+                lowStockWarning: false,
+                lowStockQuantity: '',
+                images: [],
+            });
+            setImagePreviews([]);
+        }
+    };
 
     useEffect(() => {
         return () => {
