@@ -12,12 +12,11 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
         stockUnit: 'Unit',
         lowStockWarning: false,
         lowStockQuantity: '',
-        images: [], // Ensure images is always an array
+        images: [],
     });
 
     const [imagePreviews, setImagePreviews] = useState([]);
-    const [errors, setErrors] = useState({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState({}); // State to hold validation errors
 
     useEffect(() => {
         if (initialData) {
@@ -34,7 +33,6 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
                 lowStockQuantity: initialData.lowStockQuantity || '',
                 images: initialData.images || [],
             });
-            setImagePreviews(initialData.images || []);
         }
     }, [initialData]);
 
@@ -48,26 +46,12 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
 
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
-        const validFiles = files.filter((file) =>
-            ['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)
-        );
-
-        if (validFiles.length !== files.length) {
-            alert('Some files are not valid image types (jpg, jpeg, png).');
-        }
-
-        if (validFiles.length > 5) {
-            alert('You can only upload up to 5 images.');
-            return;
-        }
-
         setFormData((prev) => ({
             ...prev,
-            images: validFiles, // Ensure images is always an array
+            images: files, // Store the actual file objects
         }));
-
-        const previews = validFiles.map((file) => URL.createObjectURL(file));
-        setImagePreviews(previews);
+        const imagePreviews = files.map(file => URL.createObjectURL(file));
+        setImagePreviews(imagePreviews);
     };
 
     const validateForm = () => {
@@ -80,54 +64,34 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
             newErrors.lowStockQuantity = 'Low Stock Warning Quantity must be a positive number.';
         }
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        return Object.keys(newErrors).length === 0; // Return true if no errors
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validateForm()) return;
 
-        if (!validateForm()) {
-            return;
-        }
+        const formDataToSend = new FormData();
+        formDataToSend.append('itemName', formData.itemName);
+        formDataToSend.append('itemCode', formData.itemCode);
+        formDataToSend.append('category', formData.category);
+        formDataToSend.append('totalUnits', formData.totalUnits);
+        formDataToSend.append('purchasePrice', formData.purchasePrice);
+        formDataToSend.append('gstRate', formData.gstRate);
+        formDataToSend.append('isInclusive', formData.isInclusive);
+        formDataToSend.append('stockUnit', formData.stockUnit);
+        formDataToSend.append('lowStockWarning', formData.lowStockWarning);
+        formDataToSend.append('lowStockQuantity', formData.lowStockQuantity);
 
-        const dataToSend = new FormData();
-        dataToSend.append('itemName', formData.itemName);
-        dataToSend.append('itemCode', formData.itemCode);
-        dataToSend.append('category', formData.category);
-        dataToSend.append('totalUnits', formData.totalUnits);
-        dataToSend.append('purchasePrice', formData.purchasePrice);
-        dataToSend.append('gstRate', formData.gstRate);
-        dataToSend.append('stockUnit', formData.stockUnit);
-        dataToSend.append('lowStockWarning', formData.lowStockWarning);
-        dataToSend.append('lowStockQuantity', formData.lowStockQuantity);
-        dataToSend.append('isInclusive', formData.isInclusive);
+        formData.images.forEach((file) => {
+            formDataToSend.append('images', file);
+        });
 
-        if (formData.images && formData.images.length > 0) {
-            formData.images.forEach((file) => dataToSend.append('images', file));
-        } else {
-            alert('Please upload at least one image.');
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            await onSubmit(dataToSend);
-        } catch (error) {
-            console.error('Error submitting form:', error);
-            alert('Failed to submit the form.');
-        } finally {
-            setIsSubmitting(false);
-        }
+        await onSubmit(formDataToSend);
     };
 
-    useEffect(() => {
-        return () => {
-            imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
-        };
-    }, [imagePreviews]);
-
     return (
-        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto max-h-screen" encType="multipart/form-data">
+        <form onSubmit={handleSubmit} className="space-y-4 z-10 overflow-y-auto max-h-screen" encType="multipart/form-data">
             <h2 className="text-lg font-bold">{initialData ? 'Edit Item' : 'Create Item'}</h2>
             <div className="border p-4 rounded">
                 <h3 className="font-medium mb-2">General Details</h3>
@@ -139,9 +103,9 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
                         onChange={handleImageUpload}
                         className="block w-full border rounded p-2"
                     />
-                    <div className="grid grid-cols-4 gap-2 mt-2">
+                    <div className="flex mt-2">
                         {imagePreviews.map((src, index) => (
-                            <img key={index} src={src} alt={`Preview ${index}`} className="w-full h-20 object-cover rounded" />
+                            <img key={index} src={src} alt={`Preview ${index}`} className="w-20 h-20 object-cover mr-2" />
                         ))}
                     </div>
                 </div>
@@ -153,7 +117,6 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
                         value={formData.itemName}
                         onChange={handleChange}
                         required
-                        placeholder="Enter item name"
                         className="block w-full border rounded p-2"
                     />
                     {errors.itemName && <p className="text-red-500">{errors.itemName}</p>}
@@ -166,7 +129,6 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
                         value={formData.category}
                         onChange={handleChange}
                         required
-                        placeholder="Enter category"
                         className="block w-full border rounded p-2"
                     />
                     {errors.category && <p className="text-red-500">{errors.category}</p>}
@@ -178,7 +140,6 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
                         name="itemCode"
                         value={formData.itemCode}
                         onChange={handleChange}
-                        placeholder="Enter item code"
                         className="block w-full border rounded p-2"
                     />
                 </div>
@@ -242,7 +203,6 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
                         value={formData.purchasePrice}
                         onChange={handleChange}
                         required
-                        placeholder="Enter purchase price"
                         className="block w-full border rounded p-2"
                     />
                     {errors.purchasePrice && <p className="text-red-500">{errors.purchasePrice}</p>}
@@ -254,7 +214,6 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
                         name="gstRate"
                         value={formData.gstRate}
                         onChange={handleChange}
-                        placeholder="Enter GST rate"
                         className="block w-full border rounded p-2"
                     />
                 </div>
@@ -279,10 +238,9 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
                 </button>
                 <button
                     type="submit"
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                    disabled={isSubmitting}
+                    className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
                 >
-                    {isSubmitting ? 'Submitting...' : initialData ? 'Update Item' : 'Add Item'}
+                    {initialData ? 'Update Item' : 'Add Item'}
                 </button>
             </div>
         </form>
