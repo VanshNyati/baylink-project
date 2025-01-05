@@ -85,17 +85,41 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const formDataToSend = new FormData();
-        formDataToSend.append('itemName', formData.itemName);
-        formDataToSend.append('category', formData.category);
+
+        const formData = new FormData();
+        formData.append('itemName', formData.itemName);
+        formData.append('category', formData.category);
+        formData.append('itemCode', formData.itemCode);
+        formData.append('totalUnits', formData.totalUnits);
+        formData.append('purchasePrice', formData.purchasePrice);
+        formData.append('gstRate', formData.gstRate);
+        formData.append('stockUnit', formData.stockUnit);
+        formData.append('lowStockWarning', formData.lowStockWarning);
+        formData.append('lowStockQuantity', formData.lowStockQuantity);
+        formData.append('isInclusive', formData.isInclusive);
+
+        // Append images
         if (formData.images.length > 0) {
-            formData.images.forEach((file) => formDataToSend.append('images', file));
-        } else {
-            console.error('No images uploaded.');
+            formData.images.forEach((file) => formData.append('images', file));
         }
-        console.log([...formDataToSend.entries()]); // Log FormData
-        await onSubmit(formDataToSend);
+
+        try {
+            const response = await fetch('https://4wrvbpvz89.execute-api.ap-south-1.amazonaws.com/prod/api/items', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Item Created:', data);
+        } catch (error) {
+            console.error('Error submitting form:', error);
+        }
     };
+
 
 
 
