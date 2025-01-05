@@ -4,6 +4,8 @@ const Item = require('../models/Item');
 const AWS = require('aws-sdk');
 const fs = require('fs');
 const dotenv = require('dotenv');
+const Busboy = require('busboy');
+
 
 dotenv.config();
 const s3 = new AWS.S3({
@@ -12,84 +14,52 @@ const s3 = new AWS.S3({
     region: process.env.AWS_REGION,
 });
 
-const uploadToS3 = async (fileContent, fileName) => {
+const uploadToS3 = async (buffer, fileName) => {
     const params = {
         Bucket: process.env.S3_BUCKET_NAME,
-        Key: fileName, 
-        Body: fileContent,
-        ACL: 'public-read', 
+        Key: fileName,
+        Body: buffer,
+        ACL: 'public-read',
     };
-
     return s3.upload(params).promise();
 };
 
-router.post('/', async (req, res) => {
-    const { itemName, itemCode, category, totalUnits, purchasePrice, gstRate, stockUnit, lowStockWarning, lowStockQuantity, isInclusive } = {};
-    const imageUrls = [];
+router.post('/', (req, res) => {
     const busboy = new Busboy({ headers: req.headers });
+    const fileBuffers = [];
+    const fileNames = [];
+    const fields = {};
 
-    busboy.on('file', async (fieldname, file, filename, encoding, mimetype) => {
-        console.log(`Uploading: ${filename}`);
-
-        // Upload each file to S3
-        const params = {
-            Bucket: process.env.S3_BUCKET_NAME,
-            Key: `${Date.now()}_${filename}`,
-            Body: file,
-            ContentType: mimetype,
-            ACL: 'public-read', // Make the file public
-        };
-
-        try {
-            const s3Response = await s3.upload(params).promise();
-            imageUrls.push(s3Response.Location);
-        } catch (error) {
-            console.error('Error uploading to S3:', error);
-            return res.status(500).json({ message: 'Error uploading file to S3' });
-        }
+    busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
+        const bufferArray = [];
+        file.on('data', (data) => bufferArray.push(data));
+        file.on('end', () => {
+            fileBuffers.push(Buffer.concat(bufferArray));
+            fileNames.push(filename);
+        });
     });
 
-    busboy.on('field', (fieldname, value) => {
-        // Collect the form fields
-        console.log(`Processed field: ${fieldname}`);
-        if (fieldname === 'itemName') itemName = value;
-        if (fieldname === 'itemCode') itemCode = value;
-        if (fieldname === 'category') category = value;
-        if (fieldname === 'totalUnits') totalUnits = parseInt(value, 10);
-        if (fieldname === 'purchasePrice') purchasePrice = parseFloat(value);
-        if (fieldname === 'gstRate') gstRate = parseFloat(value);
-        if (fieldname === 'stockUnit') stockUnit = value;
-        if (fieldname === 'lowStockWarning') lowStockWarning = value === 'true';
-        if (fieldname === 'lowStockQuantity') lowStockQuantity = parseInt(value, 10);
-        if (fieldname === 'isInclusive') isInclusive = value === 'true';
+    busboy.on('field', (fieldname, val) => {
+        fields[fieldname] = val;
     });
 
     busboy.on('finish', async () => {
         try {
-            // Final purchase price calculation
-            const finalPurchasePrice = isInclusive
-                ? purchasePrice
-                : purchasePrice + (purchasePrice * gstRate) / 100;
+            const uploadPromises = fileBuffers.map((buffer, index) =>
+                uploadToS3(buffer, `${Date.now()}_${fileNames[index]}`)
+            );
+            const s3Responses = await Promise.all(uploadPromises);
+            const imageUrls = s3Responses.map((resp) => resp.Location);
 
-            // Save the item to the database
             const newItem = new Item({
-                itemName,
-                itemCode,
-                category,
-                totalUnits,
-                purchasePrice: finalPurchasePrice,
-                gstRate,
-                stockUnit,
-                lowStockWarning,
-                lowStockQuantity,
-                isInclusive,
+                ...fields,
                 images: imageUrls,
             });
 
             const savedItem = await newItem.save();
             res.status(201).json(savedItem);
-        } catch (error) {
-            console.error('Error saving item:', error);
+        } catch (err) {
+            console.error('Error uploading files:', err);
             res.status(500).json({ message: 'Internal Server Error' });
         }
     });
