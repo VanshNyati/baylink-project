@@ -85,32 +85,18 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         const formDataToSend = new FormData();
         formDataToSend.append('itemName', formData.itemName);
-        formDataToSend.append('itemCode', formData.itemCode);
         formDataToSend.append('category', formData.category);
-        formDataToSend.append('totalUnits', formData.totalUnits);
-        formDataToSend.append('purchasePrice', formData.purchasePrice);
-        formDataToSend.append('gstRate', formData.gstRate);
-        formDataToSend.append('isInclusive', formData.isInclusive);
-        formDataToSend.append('stockUnit', formData.stockUnit);
-        formDataToSend.append('lowStockWarning', formData.lowStockWarning);
-        formDataToSend.append('lowStockQuantity', formData.lowStockQuantity);
-
-        // Append images
         if (formData.images.length > 0) {
-            formData.images.forEach((file) => {
-                formDataToSend.append('images', file);
-            });
+            formData.images.forEach((file) => formDataToSend.append('images', file));
         } else {
-            alert('Please upload at least one image.');
-            return;
+            console.error('No images uploaded.');
         }
-
-        console.log('FormData:', [...formDataToSend]); // Debug FormData
+        console.log([...formDataToSend.entries()]); // Log FormData
         await onSubmit(formDataToSend);
     };
+
 
 
     useEffect(() => {
