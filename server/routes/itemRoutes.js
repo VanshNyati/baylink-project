@@ -3,66 +3,65 @@ const router = express.Router();
 const Item = require('../models/Item');
 const multer = require('multer');
 const path = require('path');
-// const AWS = require('aws-sdk');
-// const multerS3 = require('multer-s3');
+const AWS = require('aws-sdk');
+const dotenv = require('dotenv');
+dotenv.config();
 
-// const s3 = new AWS.S3({
-//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-//     region: process.env.AWS_REGION,
-// });
-
-// const upload = multer({
-//     storage: multerS3({
-//         s3: s3,
-//         bucket: process.env.S3_BUCKET_NAME,
-//         acl: 'public-read',
-//         key: (req, file, cb) => {
-//             cb(null, Date.now().toString() + file.originalname);
-//         },
-//     }),
-// });
-
-// Set up multer for file uploads
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/'); // Directory to save uploaded files
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname)); // Append timestamp to filename
-    },
+AWS.config.update({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: 'ap-south-1', // Change to your region
 });
 
-const upload = multer({ storage });
+const s3 = new AWS.S3();
+const router = express.Router();
+const upload = multer(); // Use multer for handling multipart/form-data
 
-// Create a new item
-router.post('/', upload.array('images'), async (req, res) => {
-    console.log('Request body:', req.body);
-    console.log('Uploaded files:', req.files);
-    const { itemName, itemCode, category, totalUnits, purchasePrice, lowStockWarning, lowStockQuantity, gstRate, stockUnit, isInclusive } = req.body;
+// Function to upload image to S3
+const uploadImageToS3 = (file) => {
+    const params = {
+        Bucket: 's3image-baylink', // Your bucket name
+        Key: `images/${file.originalname}`, // File name you want to save as
+        Body: file.buffer, // File buffer
+        ContentType: file.mimetype, // File type
+        ACL: 'public-read', // Set permissions
+    };
 
-    // Process the uploaded files
-    const imagePaths = req.files.map(file => file.path); // Get the paths of the uploaded images
+    return s3.upload(params).promise();
+};
 
-    const finalPurchasePrice = isInclusive === 'true'
-        ? purchasePrice
-        : purchasePrice + (purchasePrice * gstRate / 100);
+// Set up multer for file uploads
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         cb(null, 'uploads/'); // Directory to save uploaded files
+//     },
+//     filename: (req, file, cb) => {
+//         cb(null, Date.now() + path.extname(file.originalname)); // Append timestamp to filename
+//     },
+// });
 
-    const newItem = new Item({
-        itemName,
-        itemCode,
-        category,
-        totalUnits,
-        purchasePrice: finalPurchasePrice, // Use the calculated final purchase price
-        gstRate,
-        isInclusive: isInclusive === 'true',
-        stockUnit,
-        lowStockWarning,
-        lowStockQuantity,
-        images: imagePaths,
-    });
+// const upload = multer({ storage }); 
 
+router.post('/', upload.array('images'), async (req, res) => { // Use upload.array for multiple files
     try {
+        const imageUrls = await Promise.all(req.files.map(uploadImageToS3)); // Upload all images to S3
+
+        // Create a new item with the image URLs
+        const newItem = new Item({
+            itemName: req.body.itemName,
+            itemCode: req.body.itemCode,
+            category: req.body.category,
+            description: req.body.description,
+            totalUnits: req.body.totalUnits,
+            purchasePrice: req.body.purchasePrice,
+            gstRate: req.body.gstRate,
+            isInclusive: req.body.isInclusive,
+            totalPrice: req.body.totalPrice,
+            lowStockWarning: req.body.lowStockWarning,
+            lowStockQuantity: req.body.lowStockQuantity,
+            images: imageUrls.map(url => url.Location), // Store the S3 image URLs
+        });
+
         const savedItem = await newItem.save();
         res.status(201).json(savedItem);
     } catch (error) {
