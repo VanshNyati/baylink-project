@@ -88,8 +88,7 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
             formDataToSend.append('images', file);
         });
 
-        // Send the FormData to the backend
-        // console.log(formDataToSend.get()); // Check if files are being added correctly
+        console.log('Form Data:', Array.from(formDataToSend.entries()));
         await onSubmit(formDataToSend);
     };
 

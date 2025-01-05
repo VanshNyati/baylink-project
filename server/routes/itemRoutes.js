@@ -1,5 +1,4 @@
 const express = require('express');
-const router = express.Router();
 const Item = require('../models/Item');
 const multer = require('multer');
 const path = require('path');
@@ -42,11 +41,12 @@ const uploadImageToS3 = (file) => {
 
 // const upload = multer({ storage }); 
 
-router.post('/', upload.array('images'), async (req, res) => { // Use upload.array for multiple files
+router.post('/', upload.array('images'), async (req, res) => { 
     try {
-        const imageUrls = await Promise.all(req.files.map(uploadImageToS3)); // Upload all images to S3
-
-        // Create a new item with the image URLs
+        if (!req.body.itemName || !req.body.category || !req.body.purchasePrice || !req.body.totalUnits) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+        const imageUrls = await Promise.all(req.files.map(uploadImageToS3));
         const newItem = new Item({
             itemName: req.body.itemName,
             itemCode: req.body.itemCode,
@@ -59,7 +59,7 @@ router.post('/', upload.array('images'), async (req, res) => { // Use upload.arr
             totalPrice: req.body.totalPrice,
             lowStockWarning: req.body.lowStockWarning,
             lowStockQuantity: req.body.lowStockQuantity,
-            images: imageUrls.map(url => url.Location), // Store the S3 image URLs
+            images: imageUrls.map(url => url.Location),
         });
 
         const savedItem = await newItem.save();
