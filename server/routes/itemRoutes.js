@@ -9,21 +9,20 @@ dotenv.config();
 AWS.config.update({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: 'ap-south-1', // Change to your region
+    region: 'ap-south-1', 
 });
 
 const s3 = new AWS.S3();
 const router = express.Router();
-const upload = multer(); // Use multer for handling multipart/form-data
+const upload = multer(); 
 
 // Function to upload image to S3
 const uploadImageToS3 = (file) => {
     const params = {
-        Bucket: 's3image-baylink', // Your bucket name
-        Key: `images/${file.originalname}`, // File name you want to save as
-        Body: file.buffer, // File buffer
-        ContentType: file.mimetype, // File type
-        ACL: 'public-read', // Set permissions
+        Bucket: 's3image-baylink', 
+        Key: `images/${file.originalname}`, 
+        Body: file.buffer, 
+        ContentType: file.mimetype, 
     };
 
     return s3.upload(params).promise();
