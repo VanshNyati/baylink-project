@@ -128,7 +128,7 @@ function App() {
 
     try {
       const response = await fetch(`https://4wrvbpvz89.execute-api.ap-south-1.amazonaws.com/prod/api/items/${selectedItem._id}/stock`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
