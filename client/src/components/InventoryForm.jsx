@@ -12,7 +12,7 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
         stockUnit: 'Unit',
         lowStockWarning: false,
         lowStockQuantity: '',
-        images: [],
+        images: [], // Ensure images is always an array
     });
 
     const [imagePreviews, setImagePreviews] = useState([]);
@@ -53,7 +53,7 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
         );
 
         if (validFiles.length !== files.length) {
-            alert('Some files are not valid image types (jpg, jpeg, png)');
+            alert('Some files are not valid image types (jpg, jpeg, png).');
         }
 
         if (validFiles.length > 5) {
@@ -63,11 +63,11 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
 
         setFormData((prev) => ({
             ...prev,
-            images: validFiles,
+            images: validFiles, // Ensure images is always an array
         }));
 
-        const imagePreviews = validFiles.map((file) => URL.createObjectURL(file));
-        setImagePreviews(imagePreviews);
+        const previews = validFiles.map((file) => URL.createObjectURL(file));
+        setImagePreviews(previews);
     };
 
     const validateForm = () => {
@@ -86,42 +86,39 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const formData = new FormData();
-        formData.append('itemName', formData.itemName);
-        formData.append('category', formData.category);
-        formData.append('itemCode', formData.itemCode);
-        formData.append('totalUnits', formData.totalUnits);
-        formData.append('purchasePrice', formData.purchasePrice);
-        formData.append('gstRate', formData.gstRate);
-        formData.append('stockUnit', formData.stockUnit);
-        formData.append('lowStockWarning', formData.lowStockWarning);
-        formData.append('lowStockQuantity', formData.lowStockQuantity);
-        formData.append('isInclusive', formData.isInclusive);
-
-        // Append images
-        if (formData.images.length > 0) {
-            formData.images.forEach((file) => formData.append('images', file));
+        if (!validateForm()) {
+            return;
         }
 
+        const dataToSend = new FormData();
+        dataToSend.append('itemName', formData.itemName);
+        dataToSend.append('itemCode', formData.itemCode);
+        dataToSend.append('category', formData.category);
+        dataToSend.append('totalUnits', formData.totalUnits);
+        dataToSend.append('purchasePrice', formData.purchasePrice);
+        dataToSend.append('gstRate', formData.gstRate);
+        dataToSend.append('stockUnit', formData.stockUnit);
+        dataToSend.append('lowStockWarning', formData.lowStockWarning);
+        dataToSend.append('lowStockQuantity', formData.lowStockQuantity);
+        dataToSend.append('isInclusive', formData.isInclusive);
+
+        if (formData.images && formData.images.length > 0) {
+            formData.images.forEach((file) => dataToSend.append('images', file));
+        } else {
+            alert('Please upload at least one image.');
+            return;
+        }
+
+        setIsSubmitting(true);
         try {
-            const response = await fetch('https://4wrvbpvz89.execute-api.ap-south-1.amazonaws.com/prod/api/items', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Item Created:', data);
+            await onSubmit(dataToSend);
         } catch (error) {
             console.error('Error submitting form:', error);
+            alert('Failed to submit the form.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
-
-
-
 
     useEffect(() => {
         return () => {
