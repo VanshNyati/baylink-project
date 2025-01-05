@@ -75,13 +75,13 @@ const InventoryForm = ({ onSubmit, initialData = null, onCancel }) => {
         formDataToSend.append('itemName', formData.itemName);
         formDataToSend.append('itemCode', formData.itemCode);
         formDataToSend.append('category', formData.category);
-        formDataToSend.append('totalUnits', formData.totalUnits);
-        formDataToSend.append('purchasePrice', formData.purchasePrice);
-        formDataToSend.append('gstRate', formData.gstRate);
+        formDataToSend.append('totalUnits', Number(formData.totalUnits)); // Convert to number
+        formDataToSend.append('purchasePrice', Number(formData.purchasePrice)); // Convert to number
+        formDataToSend.append('gstRate', Number(formData.gstRate)); // Convert to number
         formDataToSend.append('isInclusive', formData.isInclusive);
         formDataToSend.append('stockUnit', formData.stockUnit);
         formDataToSend.append('lowStockWarning', formData.lowStockWarning);
-        formDataToSend.append('lowStockQuantity', formData.lowStockQuantity);
+        formDataToSend.append('lowStockQuantity', Number(formData.lowStockQuantity)); // Convert to number
 
         // Append each image file to the FormData
         formData.images.forEach((file) => {
