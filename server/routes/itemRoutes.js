@@ -135,10 +135,10 @@ router.delete('/:id', async (req, res) => {
 // Update stock quantity
 router.patch('/:id/stock', async (req, res) => {
     const { id } = req.params;
-    const { quantity } = req.body; // Assuming you send the new quantity in the request body
+    const { totalUnits } = req.body; // Assuming you send the new quantity in the request body
 
     try {
-        const updatedItem = await Item.findByIdAndUpdate(id, { totalUnits: quantity }, { new: true });
+        const updatedItem = await Item.findByIdAndUpdate(id, { totalUnits: totalUnits }, { new: true });
         if (!updatedItem) {
             return res.status(404).json({ message: 'Item not found' });
         }
